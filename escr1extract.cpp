@@ -335,10 +335,21 @@ int load_file(char * filename, uchar ** data) {
     return read;
 }
 
+const char * version = "v0.1";
+
 int main(int argc, char ** argv) {
+    fprintf(stderr, "ESCR1 Extractor %s\n\n", version);
+
     if (argc != 2) {
         fprintf(stderr, "USAGE: %s <FILE>\n", argv[0]);
         exit(1);
+    }
+
+    fprintf(stderr, "WARNING: This program outputs directly to stdout.  Redirect to a file.\n");
+    fprintf(stderr, "Continue? [Y/N]\n");
+    char yn = fgetc(stdin);
+    if (yn != 'Y' && yn != 'y') {
+        exit(0);
     }
 
     script_file script;
