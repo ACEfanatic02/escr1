@@ -47,17 +47,20 @@ struct script_file {
 // Parameters for client-defined opcodes are pushed to the stack prior to the call.  The 
 // VM pops the params off the stack and passes them through a param array (maximum of 32 
 // params).
+//
+// Several reserved opcodes (and, optionally, any user-defined opcode) take an immediate
+// param -- i.e., the next 4 byte integer in the code. 
 
 // RESERVED OPCODES
 enum {
     ROP_END = 0,
-    ROP_JUMP,
-    ROP_JUMPZ,
-    ROP_CALL,
+    ROP_JUMP,       // param
+    ROP_JUMPZ,      // param
+    ROP_CALL,       // param
     ROP_RET,
-    ROP_PUSH,
+    ROP_PUSH,       // param
     ROP_POP,
-    ROP_STR,
+    ROP_STR,        // param
     ROP_SETVAR,
     ROP_GETVAR,
     ROP_SETFLAG,
@@ -82,7 +85,7 @@ enum {
     ROP_LNOT,
     ROP_LAND,
     ROP_LOR,
-    ROP_FILELINE,
+    ROP_FILELINE,   // param
 
     ROP_COUNT
 };
@@ -132,6 +135,23 @@ struct opcode {
 opcode * opcode_list = NULL;
 uint opcode_count;
 
+bool opcode_has_param(uint op) {
+    // NOTE:
+    // This only covers the reserved opcodes.
+    // User-defined opcodes may *also* take an immediate param.  This is a bit of
+    // an issue here, because the user-defined opcodes differ from game to game, so
+    // there is no canonical list of which user-defined opcodes need to eat a param.
+    //
+    // This shows up in the listing as, among other things, a call to an offset *well*
+    // beyond the end of the code block.
+    return op == ROP_JUMP  ||
+           op == ROP_JUMPZ ||
+           op == ROP_CALL  ||
+           op == ROP_PUSH  ||
+           op == ROP_STR   ||
+           op == ROP_FILELINE;
+}
+
 int next_opcode(script_file * file, uint offset, opcode * op) {
     if (offset >= file->code_size) {
         return -1;
@@ -142,9 +162,8 @@ int next_opcode(script_file * file, uint offset, opcode * op) {
     opc.offset = offset;
     opc.op = (uint)file->code_ptr[offset];
     bytes_read++;
-    if (opc.op == ROP_PUSH || opc.op == ROP_FILELINE) {
-        // PUSH is the only reserved op with a param.
-        if (offset + bytes_read > file->code_size) {
+    if (opcode_has_param(opc.op)) {
+        if (offset + bytes_read >= file->code_size) {
             return -1;
         }
 
@@ -169,7 +188,7 @@ const char * opcode_string(uint op) {
 }
 
 void print_opcode(opcode * op) {
-    if (op->op == ROP_PUSH || op->op == ROP_FILELINE) { 
+    if (opcode_has_param(op->op)) { 
         printf("%08x:\t%s\t%08x\n", op->offset, opcode_string(op->op), op->param);
     }
     else {
