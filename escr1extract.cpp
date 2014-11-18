@@ -141,31 +141,31 @@ struct usr_op {
 
 // SENSUIBU
 usr_op USR_OPS[] = {
-    { "USR_END      ", 1 },
-    { "USR_JUMP     ", 1 },
-    { "USR_CALL     ", 1 },
-    { "USR_AUTOPLAY ", 1 },
-    { "USR_FRAME    ", 1 },
-    { "USR_TEXT     ", 2 },
-    { "USR_CLEAR    ", 1 },
-    { "USR_GAP      ", 2 },
-    { "USR_MES      ", 1 },
-    { "USR_TLK      ", -1 },
-    { "USR_MENU     ", 3 },
-    { "USR_SELECT   ", 1 },
-    { "USR_LSF_INIT ", 1 },
-    { "USR_LSF_SET  ", -1 },
-    { "USR_CG       ", -1 },
-    { "USR_EM       ", 5 },
-    { "USR_CLR      ", 1 },
-    { "USR_DISP     ", 3 },
-    { "USR_PATH     ", -1 },
-    { "USR_TRANS    ", 0 },
-    { "USR_BGMPLAY  ", 3 },
-    { "USR_BGMSTOP  ", 1 },
-    { "USR_BGMVOLUME", 2 },
-    { "USR_BGMFX    ", 1 },
-    { "USR_AMBPLAY  ", 3 },
+    { "USR_END      ", 1 },     // Ends current script, ???saves game state???
+    { "USR_JUMP     ", 1 },     // Jump into a different script
+    { "USR_CALL     ", 1 },     // Call into a different script
+    { "USR_AUTOPLAY ", 1 },     // Enable/disable auto mode
+    { "USR_FRAME    ", 1 },     // Update text frame (?what does this actually mean?)
+    { "USR_TEXT     ", 2 },     // Show or hide text frame, with optional time
+    { "USR_CLEAR    ", 1 },     // Clear message window
+    { "USR_GAP      ", 2 },     // Message windo whitespace??
+    { "USR_MES      ", 1 },     // Display text/name in message window.
+    { "USR_TLK      ", -1 },    // Sets character name/face in message window, setup for voice playback??
+    { "USR_MENU     ", 3 },     // Sets a menu option.  Params: menu id, option string, option enabled flag
+    { "USR_SELECT   ", 1 },     // Runs the actual selection task for a menu.
+    { "USR_LSF_INIT ", 1 },     // Initialize a sprite layer
+    { "USR_LSF_SET  ", -1 },    // Set flags for sprite layer (??)
+    { "USR_CG       ", -1 },    // Set up a *sprite*, not an event CG (?)
+    { "USR_EM       ", 5 },     // Set character sprite expression (?)
+    { "USR_CLR      ", 1 },     // Clear flagged sprite layer(s)
+    { "USR_DISP     ", 3 },     // Screen transition
+    { "USR_PATH     ", -1 },    // Sets up interpolation for sprites (???)
+    { "USR_TRANS    ", 0 },     // Fade out layer (?)
+    { "USR_BGMPLAY  ", 3 },     // Start BGM.  Params: id, fade time (for previous BGM?), start time
+    { "USR_BGMSTOP  ", 1 },     // Stop BGM.  Param: fade time
+    { "USR_BGMVOLUME", 2 },     // Set BGM volume, with optional fade
+    { "USR_BGMFX    ", 1 },     // Apply effect to BGM
+    { "USR_AMBPLAY  ", 3 },     //
     { "USR_AMBSTOP  ", 1 },
     { "USR_AMBVOLUME", 2 },
     { "USR_AMBFX    ", 1 },
@@ -179,30 +179,30 @@ usr_op USR_OPS[] = {
     { "USR_VOCWAIT  ", 1 },
     { "USR_VOCVOLUME", 3 },
     { "USR_VOCFX    ", 1 },
-    { "USR_QUAKE    ", 4 },
-    { "USR_FLASH    ", 2 },
-    { "USR_FILTER   ", 2 },
-    { "USR_EFFECT   ", 1 },
-    { "USR_SYNC     ", 2 },
-    { "USR_WAIT     ", 1 },
-    { "USR_MOVIE    ", 1 },
-    { "USR_CREDIT   ", 1 },
-    { "USR_EVENT    ", 1 },
-    { "USR_SCENE    ", 1 },
-    { "USR_TITLE    ", 1 },
-    { "USR_NOTICE   ", 3 },
-    { "USR_SET_PASS ", 2 },
+    { "USR_QUAKE    ", 4 },     // Screenshake effect
+    { "USR_FLASH    ", 2 },     // Flash effect
+    { "USR_FILTER   ", 2 },     // Image filter
+    { "USR_EFFECT   ", 1 },     // Particle effect
+    { "USR_SYNC     ", 2 },     // Wait for / cancel screen effects (disolve, quake, flash, trans).
+    { "USR_WAIT     ", 1 },     // Pause text ???
+    { "USR_MOVIE    ", 1 },     // Stop ADV mode, play movie (returns to ADV afterwards).
+    { "USR_CREDIT   ", 1 },     // Stop ADV mode, play credits
+    { "USR_EVENT    ", 1 },     // Unlock event CG
+    { "USR_SCENE    ", 1 },     // Unlock event scene
+    { "USR_TITLE    ", 1 },     // Display scene title
+    { "USR_NOTICE   ", 3 },     // Popup notices (?)
+    { "USR_SET_PASS ", 2 },     // Record progress???
     { "USR_IS_PASS  ", 1 },
-    { "USR_AUTO_SAVE", 0 },
-    { "USR_PLACE    ", 1 },
+    { "USR_AUTO_SAVE", 0 },     // Autosave
+    { "USR_PLACE    ", 1 },     // Display place name
     { "USR_OPEN_NAME", 1 },
     { "USR_NAME     ", 2 },
-    { "USR_DATE     ", 0 },
-    { "USR_HELP     ", -1 },
+    { "USR_DATE     ", 0 },     // Display (in-game) date
+    { "USR_HELP     ", -1 },    // Enable/disable help items
 
-    { "USR_PLATY_GAME", 1 },
-    { "USR_TRAINING", 0 },
-    { "USR_SPECIAL_TRAINING", 0 },
+    { "USR_PLATY_GAME", 1 },    // Run mini-game mode
+    { "USR_TRAINING", 0 },      // Run training mode
+    { "USR_SPECIAL_TRAINING", 0 },  // Run special training mode
 
     { "USR_SET_GAME", 3 },
     { "USR_WHATDAY", 0 },
@@ -218,14 +218,8 @@ opcode * opcode_list = NULL;
 uint opcode_count;
 
 bool opcode_has_param(uint op) {
-    // NOTE:
-    // This only covers the reserved opcodes.
-    // User-defined opcodes may *also* take an immediate param.  This is a bit of
-    // an issue here, because the user-defined opcodes differ from game to game, so
-    // there is no canonical list of which user-defined opcodes need to eat a param.
-    //
-    // This shows up in the listing as, among other things, a call to an offset *well*
-    // beyond the end of the code block.
+
+    // Reserved opcodes
     if (op < ROP_COUNT) {
         return op == ROP_JUMP  ||
                op == ROP_JUMPZ ||
@@ -235,6 +229,7 @@ bool opcode_has_param(uint op) {
                op == ROP_FILELINE;
     }
     else {
+        // User opcodes take an immediate param if param_count is negative.
         return USR_OPS[op - ROP_COUNT].param_count < 0;
     }
 }
