@@ -132,6 +132,88 @@ struct opcode {
     uint param;
 };
 
+struct usr_op {
+    const char * name;
+    int param_count;
+};
+
+// USER DEFINED OPCODES
+
+// SENSUIBU
+usr_op USR_OPS[] = {
+    { "USR_END      ", 1 },
+    { "USR_JUMP     ", 1 },
+    { "USR_CALL     ", 1 },
+    { "USR_AUTOPLAY ", 1 },
+    { "USR_FRAME    ", 1 },
+    { "USR_TEXT     ", 2 },
+    { "USR_CLEAR    ", 1 },
+    { "USR_GAP      ", 2 },
+    { "USR_MES      ", 1 },
+    { "USR_TLK      ", -1 },
+    { "USR_MENU     ", 3 },
+    { "USR_SELECT   ", 1 },
+    { "USR_LSF_INIT ", 1 },
+    { "USR_LSF_SET  ", -1 },
+    { "USR_CG       ", -1 },
+    { "USR_EM       ", 5 },
+    { "USR_CLR      ", 1 },
+    { "USR_DISP     ", 3 },
+    { "USR_PATH     ", -1 },
+    { "USR_TRANS    ", 0 },
+    { "USR_BGMPLAY  ", 3 },
+    { "USR_BGMSTOP  ", 1 },
+    { "USR_BGMVOLUME", 2 },
+    { "USR_BGMFX    ", 1 },
+    { "USR_AMBPLAY  ", 3 },
+    { "USR_AMBSTOP  ", 1 },
+    { "USR_AMBVOLUME", 2 },
+    { "USR_AMBFX    ", 1 },
+    { "USR_SEPLAY   ", 5 },
+    { "USR_SESTOP   ", 2 },
+    { "USR_SEWAIT   ", 1 },
+    { "USR_SEVOLUME ", 3 },
+    { "USR_SEFX     ", 1 },
+    { "USR_VOCPLAY  ", 4 },
+    { "USR_VOCSTOP  ", 2 },
+    { "USR_VOCWAIT  ", 1 },
+    { "USR_VOCVOLUME", 3 },
+    { "USR_VOCFX    ", 1 },
+    { "USR_QUAKE    ", 4 },
+    { "USR_FLASH    ", 2 },
+    { "USR_FILTER   ", 2 },
+    { "USR_EFFECT   ", 1 },
+    { "USR_SYNC     ", 2 },
+    { "USR_WAIT     ", 1 },
+    { "USR_MOVIE    ", 1 },
+    { "USR_CREDIT   ", 1 },
+    { "USR_EVENT    ", 1 },
+    { "USR_SCENE    ", 1 },
+    { "USR_TITLE    ", 1 },
+    { "USR_NOTICE   ", 3 },
+    { "USR_SET_PASS ", 2 },
+    { "USR_IS_PASS  ", 1 },
+    { "USR_AUTO_SAVE", 0 },
+    { "USR_PLACE    ", 1 },
+    { "USR_OPEN_NAME", 1 },
+    { "USR_NAME     ", 2 },
+    { "USR_DATE     ", 0 },
+    { "USR_HELP     ", -1 },
+
+    { "USR_PLATY_GAME", 1 },
+    { "USR_TRAINING", 0 },
+    { "USR_SPECIAL_TRAINING", 0 },
+
+    { "USR_SET_GAME", 3 },
+    { "USR_WHATDAY", 0 },
+    { "USR_SET_UNIT", 4 },
+    { "USR_GET_UNIT", 3 },
+    { "USR_BTS_RESULT", 0 },
+    { "USR_GAME_SETTING", 1 },
+    { "USR_WATCH_ENEMY", 1 },
+    { "USR_RND_RT", 1 },
+};
+
 opcode * opcode_list = NULL;
 uint opcode_count;
 
@@ -144,12 +226,17 @@ bool opcode_has_param(uint op) {
     //
     // This shows up in the listing as, among other things, a call to an offset *well*
     // beyond the end of the code block.
-    return op == ROP_JUMP  ||
-           op == ROP_JUMPZ ||
-           op == ROP_CALL  ||
-           op == ROP_PUSH  ||
-           op == ROP_STR   ||
-           op == ROP_FILELINE;
+    if (op < ROP_COUNT) {
+        return op == ROP_JUMP  ||
+               op == ROP_JUMPZ ||
+               op == ROP_CALL  ||
+               op == ROP_PUSH  ||
+               op == ROP_STR   ||
+               op == ROP_FILELINE;
+    }
+    else {
+        return USR_OPS[op - ROP_COUNT].param_count < 0;
+    }
 }
 
 int next_opcode(script_file * file, uint offset, opcode * op) {
@@ -182,14 +269,15 @@ int next_opcode(script_file * file, uint offset, opcode * op) {
 
 const char * opcode_string(uint op) {
     if (op >= ROP_COUNT) {
-        return "USR_OP";
+        uint uop = op - ROP_COUNT;
+        return USR_OPS[uop].name;
     }
     return ROP_NAMES[op];
 }
 
 void print_opcode(opcode * op) {
     if (opcode_has_param(op->op)) { 
-        printf("%08x:\t%s\t%08x\n", op->offset, opcode_string(op->op), op->param);
+        printf("%08x:\t%-20s\t%08x\n", op->offset, opcode_string(op->op), op->param);
     }
     else {
         printf("%08x:\t%s\n", op->offset, opcode_string(op->op));
