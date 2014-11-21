@@ -302,7 +302,7 @@ void print_opcode(script_file * file, opcode * op) {
     if (opcode_has_param(op->op)) { 
         printf("%08x:\t%-20s\t%08x\n", op->offset, opcode_string(op->op), op->param);
 
-        if (op->op == ROP_STR) {
+        if (show_strings && op->op == ROP_STR) {
             char * str = NULL;
             if (data_lookup_string(file, op->param, &str)) {
                 printf("\t\t%s\n\n", str);
@@ -370,7 +370,7 @@ const char * version = "v0.1";
 char * input_filename;
 
 void parse_argv(int argc, char ** argv) {
-    if (argc > 2) {
+    if (argc > 1) {
         for (int i = 1; i < argc; ++i) {
             if (!strcmp(argv[i], "--str") || !strcmp(argv[i], "-s")) {
                 show_strings = true;
