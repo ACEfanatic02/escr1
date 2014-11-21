@@ -219,6 +219,7 @@ usr_op USR_OPS[] = {
 
 
 bool show_strings = false;
+bool htoz = false;
 opcode * opcode_list = NULL;
 uint opcode_count;
 
@@ -243,6 +244,134 @@ bool data_lookup_string(script_file * file, uint id, char ** out) {
         *out = (char *)missing_string;
         return false;
     }
+}
+
+struct htoz_table_entry {
+    uchar hankaku;
+    uchar zenkaku[2];
+};
+
+static uint htoz_table_size = 64;
+
+static htoz_table_entry htoz_table[htoz_table_size] = {
+    { 0xa0, { 0x81, 0x40 } },
+    { 0x21, { 0x81, 0x49 } },
+    { 0x3f, { 0x81, 0x48 } },
+    { 0xa5, { 0x81, 0x63 } },
+    { 0xa1, { 0x81, 0x42 } },
+    { 0xa2, { 0x81, 0x75 } },
+    { 0xa3, { 0x81, 0x76 } },
+    { 0xa4, { 0x81, 0x41 } },
+    { 0xa6, { 0x82, 0xf0 } },
+    { 0xa7, { 0x82, 0x9f } },
+    { 0xa8, { 0x82, 0xa1 } },
+    { 0xa9, { 0x82, 0xa3 } },
+    { 0xaa, { 0x82, 0xa5 } },
+    { 0xab, { 0x82, 0xa7 } },
+    { 0xac, { 0x82, 0xe1 } },
+    { 0xad, { 0x82, 0xe3 } },
+    { 0xae, { 0x82, 0xe5 } },
+    { 0xaf, { 0x82, 0xc1 } },
+    { 0xb0, { 0x81, 0x5b } },
+    { 0xb1, { 0x82, 0xa0 } },
+    { 0xb2, { 0x82, 0xa2 } },
+    { 0xb3, { 0x82, 0xa4 } },
+    { 0xb4, { 0x82, 0xa6 } },
+    { 0xb5, { 0x82, 0xa8 } },
+    { 0xb6, { 0x82, 0xa9 } },
+    { 0xb7, { 0x82, 0xab } },
+    { 0xb8, { 0x82, 0xad } },
+    { 0xb9, { 0x82, 0xaf } },
+    { 0xba, { 0x82, 0xb1 } },
+    { 0xbb, { 0x82, 0xb3 } },
+    { 0xbc, { 0x82, 0xb5 } },
+    { 0xbd, { 0x82, 0xb7 } },
+    { 0xbe, { 0x82, 0xb9 } },
+    { 0xbf, { 0x82, 0xbb } },
+    { 0xc0, { 0x82, 0xbd } },
+    { 0xc1, { 0x82, 0xbf } },
+    { 0xc2, { 0x82, 0xc2 } },
+    { 0xc3, { 0x82, 0xc4 } },
+    { 0xc4, { 0x82, 0xc6 } },
+    { 0xc5, { 0x82, 0xc8 } },
+    { 0xc6, { 0x82, 0xc9 } },
+    { 0xc7, { 0x82, 0xca } },
+    { 0xc8, { 0x82, 0xcb } },
+    { 0xc9, { 0x82, 0xcc } },
+    { 0xca, { 0x82, 0xcd } },
+    { 0xcb, { 0x82, 0xd0 } },
+    { 0xcc, { 0x82, 0xd3 } },
+    { 0xcd, { 0x82, 0xd6 } },
+    { 0xce, { 0x82, 0xd9 } },
+    { 0xcf, { 0x82, 0xdc } },
+    { 0xd0, { 0x82, 0xdd } },
+    { 0xd1, { 0x82, 0xde } },
+    { 0xd2, { 0x82, 0xdf } },
+    { 0xd3, { 0x82, 0xe0 } },
+    { 0xd4, { 0x82, 0xe2 } },
+    { 0xd5, { 0x82, 0xe4 } },
+    { 0xd6, { 0x82, 0xe6 } },
+    { 0xd7, { 0x82, 0xe7 } },
+    { 0xd8, { 0x82, 0xe8 } },
+    { 0xd9, { 0x82, 0xe9 } },
+    { 0xda, { 0x82, 0xea } },
+    { 0xdb, { 0x82, 0xeb } },
+    { 0xdc, { 0x82, 0xed } },
+    { 0xdd, { 0x82, 0xf1 } },
+};
+
+uint htoz_table_lookup(uchar hk) {
+    for (uint i = 0; i < htoz_table_size; ++i) {
+        htoz_table_entry * e = &htoz_table[i];
+        if (e->hankaku == hk) {
+            return i;
+        } 
+    }
+    return -1;
+}
+
+static bool is_half_kana(uchar c) {
+    // 0xa0 is an invalid lead byte, but is used by the engine to encode a full-width space.
+    //return c >= 0xa0 && c <= 0xdd;
+    return htoz_table_lookup(c) != -1;
+}
+
+void convert_string_htoz(char ** str) {
+    uchar buffer[2048] = {0};  // We'll assume this is large enough.
+    assert(strlen(*str) < 1024);
+
+    uchar *src = (uchar *)(*str);
+    uchar *dest = &buffer[0];
+    while (*src) {
+        if ((*src >= 0x81 && *src <= 0x9f) || (*src >= 0xe0 && *src <= 0xef)) {
+            // Two byte character.
+            *dest++ = *src++;
+            *dest++ = *src++;
+        }
+        else if (*src == 0x1b) {
+            // ESC, used to excape following character.
+            src++;
+            *dest++ = *src++;
+        }
+        else if (is_half_kana(*src)) {
+            uint idx = htoz_table_lookup(*src);
+            assert(idx >= 0 && idx < htoz_table_size);
+            *dest++ = htoz_table[idx].zenkaku[0];
+            *dest++ = htoz_table[idx].zenkaku[1];
+            src++;
+        }
+        else {
+            // Single byte character.
+            *dest++ = *src++;
+        }
+    }
+    *dest = '\0';
+    uint size = (dest - buffer);
+    assert(size > 0);
+
+    char * newstr = (char *)calloc(1, size + 1);
+    strncpy(newstr, (char *)buffer, size);
+    *str = newstr;
 }
 
 bool opcode_has_param(uint op) {
@@ -305,7 +434,9 @@ void print_opcode(script_file * file, opcode * op) {
         if (show_strings && op->op == ROP_STR) {
             char * str = NULL;
             if (data_lookup_string(file, op->param, &str)) {
+                if (htoz) convert_string_htoz(&str);
                 printf("\t\t%s\n\n", str);
+                if (htoz) free(str);
             }
         }
     }
@@ -369,11 +500,26 @@ const char * version = "v0.1";
 
 char * input_filename;
 
+void usage(const char * argv0) {
+    fprintf(stderr, "USAGE:  %s <INPUT FILE> [options]\n\n", argv0);
+    fprintf(stderr, "Options\n");
+    fprintf(stderr, "--help    | -h    Show this listing and exit.\n");
+    fprintf(stderr, "--str     | -s    Print string literals inline.\n");
+    fprintf(stderr, "--convert | -c    Convert half-width katakana to full-width hiragana.\n");
+}
+
 void parse_argv(int argc, char ** argv) {
     if (argc > 1) {
         for (int i = 1; i < argc; ++i) {
             if (!strcmp(argv[i], "--str") || !strcmp(argv[i], "-s")) {
                 show_strings = true;
+            }
+            else if (!strcmp(argv[i], "--convert") || !strcmp(argv[i], "-c")) {
+                htoz = true;
+            }
+            else if (!strcmp(argv[i], "--help") || !strcmp(argv[i], "-h")) {
+                usage(argv[0]);
+                exit(0);
             }
             else {
                 input_filename = argv[i];
@@ -386,7 +532,8 @@ int main(int argc, char ** argv) {
     fprintf(stderr, "ESCR1 Extractor %s\n\n", version);
 
     if (argc < 2) {
-        fprintf(stderr, "USAGE: %s <FILE>\n", argv[0]);
+//        fprintf(stderr, "USAGE: %s <FILE>\n", argv[0]);
+        usage(argv[0]);
         exit(1);
     }
 
