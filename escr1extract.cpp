@@ -50,6 +50,9 @@ struct script_file {
 //
 // Several reserved opcodes (and, optionally, any user-defined opcode) take an immediate
 // param -- i.e., the next 4 byte integer in the code. 
+// UPDATE (2014-11-21):  Immediate param for user-defined opcodes is *not* a parameter for
+// the function call, but rather a parameter *count* for opcodes that can accept a variable
+// argument count.  (This doesn't effect parsing, but is important for execution.)
 
 // RESERVED OPCODES
 enum {
@@ -155,12 +158,12 @@ usr_op USR_OPS[] = {
     { "USR_SELECT   ", 1 },     // Runs the actual selection task for a menu.
     { "USR_LSF_INIT ", 1 },     // Initialize a sprite layer
     { "USR_LSF_SET  ", -1 },    // Set flags for sprite layer (??)
-    { "USR_CG       ", -1 },    // Set up a *sprite*, not an event CG (?)
+    { "USR_CG       ", -1 },    // Set up CG (sprites *AND* BG/EV)
     { "USR_EM       ", 5 },     // Set character sprite expression (?)
     { "USR_CLR      ", 1 },     // Clear flagged sprite layer(s)
     { "USR_DISP     ", 3 },     // Screen transition
     { "USR_PATH     ", -1 },    // Sets up interpolation for sprites (???)
-    { "USR_TRANS    ", 0 },     // Fade out layer (?)
+    { "USR_TRANS    ", 0 },     // Fade out layer (?)  TRANSITION, duh.
     { "USR_BGMPLAY  ", 3 },     // Start BGM.  Params: id, fade time (for previous BGM?), start time
     { "USR_BGMSTOP  ", 1 },     // Stop BGM.  Param: fade time
     { "USR_BGMVOLUME", 2 },     // Set BGM volume, with optional fade
@@ -214,8 +217,33 @@ usr_op USR_OPS[] = {
     { "USR_RND_RT", 1 },
 };
 
+
+bool show_strings = false;
 opcode * opcode_list = NULL;
 uint opcode_count;
+
+const char * missing_string = "STRING_DATA_NOT_FOUND";
+
+bool data_lookup_string(script_file * file, uint id, char ** out) {
+    if (id >= file->index_count) {
+        fprintf(stderr, "Reference to string not in file, id: %08x\n", id);
+        *out = (char *)missing_string;
+        return false;
+    }
+    uint offset = file->index_ptr[id];
+
+    assert(((file->data_ptr + offset) - file->contents) < file->file_size);
+
+    char * str = (char *)(file->data_ptr + offset);
+    if (*str) {
+        *out = str;
+        return true;
+    }
+    else {
+        *out = (char *)missing_string;
+        return false;
+    }
+}
 
 bool opcode_has_param(uint op) {
 
@@ -270,9 +298,16 @@ const char * opcode_string(uint op) {
     return ROP_NAMES[op];
 }
 
-void print_opcode(opcode * op) {
+void print_opcode(script_file * file, opcode * op) {
     if (opcode_has_param(op->op)) { 
         printf("%08x:\t%-20s\t%08x\n", op->offset, opcode_string(op->op), op->param);
+
+        if (op->op == ROP_STR) {
+            char * str = NULL;
+            if (data_lookup_string(file, op->param, &str)) {
+                printf("\t\t%s\n\n", str);
+            }
+        }
     }
     else {
         printf("%08x:\t%s\n", op->offset, opcode_string(op->op));
@@ -292,7 +327,7 @@ void parse_opcodes(script_file * file) {
             break;
         }
 
-        print_opcode(&op);
+        print_opcode(file, &op);
         current_offset += bytes_read;
     }
 }
@@ -332,13 +367,30 @@ int load_file(char * filename, uchar ** data) {
 
 const char * version = "v0.1";
 
+char * input_filename;
+
+void parse_argv(int argc, char ** argv) {
+    if (argc > 2) {
+        for (int i = 1; i < argc; ++i) {
+            if (!strcmp(argv[i], "--str") || !strcmp(argv[i], "-s")) {
+                show_strings = true;
+            }
+            else {
+                input_filename = argv[i];
+            }
+        }
+    }
+}
+
 int main(int argc, char ** argv) {
     fprintf(stderr, "ESCR1 Extractor %s\n\n", version);
 
-    if (argc != 2) {
+    if (argc < 2) {
         fprintf(stderr, "USAGE: %s <FILE>\n", argv[0]);
         exit(1);
     }
+
+    parse_argv(argc, argv);
 
     fprintf(stderr, "WARNING: This program outputs directly to stdout.  Redirect to a file.\n");
     fprintf(stderr, "Continue? [Y/N]\n");
@@ -349,7 +401,7 @@ int main(int argc, char ** argv) {
 
     script_file script;
     uchar * data;
-    int flen = load_file(argv[1], &data);
+    int flen = load_file(input_filename, &data);
 
     script.contents = data;
     script.file_size = flen;
